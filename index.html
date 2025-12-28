@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -66,13 +66,12 @@ const groups = {
   "D": ["Jholok FC", "Dipu FC", "Toybur FC"]
 };
 
-/* ================= STORAGE KEYS ================= */
+/* ================= STORAGE ================= */
 const STORAGE_KEY = "football_tournament_scores";
-
-/* ================= TEAM STATS ================= */
-const stats = {};
 const savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
+/* ================= STATS ================= */
+const stats = {};
 for (let g in groups) {
   stats[g] = {};
   groups[g].forEach(team => {
@@ -87,16 +86,16 @@ for (let g in groups) {
 
 function resetGroup(g) {
   for (let t in stats[g]) {
-    stats[g][t] = {
+    Object.assign(stats[g][t], {
       MP:0,W:0,D:0,L:0,
       GF:0,GA:0,
       HG:0,AG:0,
       PTS:0
-    };
+    });
   }
 }
 
-/* ================= SAVE DATA ================= */
+/* ================= SAVE ================= */
 function saveData() {
   const data = {};
   document.querySelectorAll(".match").forEach((m, i) => {
@@ -109,11 +108,11 @@ function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-/* ================= UPDATE GROUP ================= */
+/* ================= UPDATE ================= */
 function updateGroup(g) {
   resetGroup(g);
 
-  document.querySelectorAll([data-group="${g}"]).forEach(match => {
+  document.querySelectorAll(`[data-group="${g}"]`).forEach(match => {
     const t1 = match.dataset.t1;
     const t2 = match.dataset.t2;
 
@@ -125,13 +124,14 @@ function updateGroup(g) {
 
     if (isNaN(hg) || isNaN(ag)) return;
 
-    let H = stats[g][home];
-    let A = stats[g][away];
+    const H = stats[g][home];
+    const A = stats[g][away];
 
     H.MP++; A.MP++;
     H.GF += hg; H.GA += ag;
     A.GF += ag; A.GA += hg;
-    H.HG += hg; A.AG += ag;
+    H.HG += hg;
+    A.AG += ag;
 
     if (hg > ag) { H.W++; A.L++; H.PTS += 3; }
     else if (hg < ag) { A.W++; H.L++; A.PTS += 3; }
@@ -142,7 +142,7 @@ function updateGroup(g) {
   renderTable(g);
 }
 
-/* ================= RENDER TABLE ================= */
+/* ================= TABLE ================= */
 function renderTable(g) {
   const tbody = document.getElementById("table-" + g);
   tbody.innerHTML = "";
@@ -172,18 +172,18 @@ function renderTable(g) {
   });
 }
 
-/* ================= CREATE GROUP ================= */
+/* ================= GROUP UI ================= */
 function makeGroup(g) {
-  let html = <div class="group"><h2>Group ${g}</h2>;
-  let t = groups[g];
+  let html = `<div class="group"><h2>Group ${g}</h2>`;
+  const t = groups[g];
 
-  let matches = [
+  const matches = [
     [t[0], t[1]], [t[1], t[0]],
     [t[1], t[2]], [t[2], t[1]],
     [t[2], t[0]], [t[0], t[2]]
   ];
 
-  matches.forEach((m, i) => {
+  matches.forEach(m => {
     html += `
     <div class="match" data-group="${g}" data-t1="${m[0]}" data-t2="${m[1]}">
       Home:
@@ -191,9 +191,9 @@ function makeGroup(g) {
         <option>${m[0]}</option>
         <option>${m[1]}</option>
       </select>
-      <input class="hg" placeholder="HG" oninput="updateGroup('${g}')">
+      <input class="hg" type="number" min="0" placeholder="HG" oninput="updateGroup('${g}')">
       :
-      <input class="ag" placeholder="AG" oninput="updateGroup('${g}')">
+      <input class="ag" type="number" min="0" placeholder="AG" oninput="updateGroup('${g}')">
       Away
     </div>`;
   });
@@ -215,13 +215,11 @@ function makeGroup(g) {
   return html;
 }
 
-/* ================= LOAD PAGE ================= */
+/* ================= INIT ================= */
 const app = document.getElementById("app");
-for (let g in groups) {
-  app.innerHTML += makeGroup(g);
-}
+for (let g in groups) app.innerHTML += makeGroup(g);
 
-/* ================= RESTORE SAVED INPUTS ================= */
+/* ================= RESTORE ================= */
 document.querySelectorAll(".match").forEach((m, i) => {
   if (savedData[i]) {
     m.querySelector(".home").value = savedData[i].home;
@@ -230,10 +228,9 @@ document.querySelectorAll(".match").forEach((m, i) => {
   }
 });
 
-/* ================= INITIAL CALC ================= */
+/* ================= FIRST CALC ================= */
 for (let g in groups) updateGroup(g);
 </script>
 
 </body>
 </html>
-
