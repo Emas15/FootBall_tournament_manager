@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Football Tournament Manager</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #0d1b2a;
+        color: #ffffff;
+        padding: 15px;
+      }
+      h1,
+      h2 {
+        text-align: center;
+      }
+      .group {
+        border: 2px solid #00b4d8;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 40px;
+      }
+      .match {
+        margin: 6px 0;
+      }
+      input,
+      select {
+        width: 50px;
+        padding: 5px;
+        text-align: center;
+      }
+      select {
+        width: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        border: 1px solid #00b4d8;
+        padding: 6px;
+        text-align: center;
+        font-size: 14px;
+      }
+      th {
+        background: #023e8a;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>⚽ Football Tournament System</h1>
+
+    <div id="app"></div>
+
+    <script>
+      /* ===== GROUP SETUP ===== */
+      const groups = {
+        A: ["Mahin FC", "Sami FC", "Dip FC"],
+        B: ["Shawan FC", "Turja FC", "Salehin FC"],
+        C: ["Pritom FC", "Behasty FC", "Taassen FC"],
+        D: ["Jholok FC", "Dipu FC", "Toybur FC"],
+      };
+
+      /* ===== TEAM STATS ===== */
+      const stats = {};
+
+      for (let g in groups) {
+        stats[g] = {};
+        groups[g].forEach((team) => {
+          stats[g][team] = {
+            MP: 0,
+            W: 0,
+            D: 0,
+            L: 0,
+            GF: 0,
+            GA: 0,
+            HG: 0,
+            AG: 0,
+            PTS: 0,
+          };
+        });
+      }
+
+      function resetGroup(g) {
+        for (let t in stats[g]) {
+          stats[g][t] = {
+            MP: 0,
+            W: 0,
+            D: 0,
+            L: 0,
+            GF: 0,
+            GA: 0,
+            HG: 0,
+            AG: 0,
+            PTS: 0,
+          };
+        }
+      }
+
+      /* ===== UPDATE MATCH & TABLE ===== */
+      function updateGroup(g) {
+        resetGroup(g);
+
+        document.querySelectorAll(`[data-group="${g}"]`).forEach((match) => {
+          const t1 = match.dataset.t1;
+          const t2 = match.dataset.t2;
+          const home = match.querySelector(".home").value;
+          const away = home === t1 ? t2 : t1;
+
+          const hg = parseInt(match.querySelector(".hg").value);
+          const ag = parseInt(match.querySelector(".ag").value);
+
+          if (isNaN(hg) || isNaN(ag)) return;
+
+          let H = stats[g][home];
+          let A = stats[g][away];
+
+          H.MP++;
+          A.MP++;
+          H.GF += hg;
+          H.GA += ag;
+          A.GF += ag;
+          A.GA += hg;
+          H.HG += hg;
+          A.AG += ag;
+
+          if (hg > ag) {
+            H.W++;
+            A.L++;
+            H.PTS += 3;
+          } else if (hg < ag) {
+            A.W++;
+            H.L++;
+            A.PTS += 3;
+          } else {
+            H.D++;
+            A.D++;
+            H.PTS++;
+            A.PTS++;
+          }
+        });
+
+        renderTable(g);
+      }
+
+      /* ===== TABLE RENDER ===== */
+      function renderTable(g) {
+        const tbody = document.getElementById("table-" + g);
+        tbody.innerHTML = "";
+
+        const sorted = Object.entries(stats[g]).sort(
+          (a, b) =>
+            b[1].PTS - a[1].PTS ||
+            b[1].GF - b[1].GA - (a[1].GF - a[1].GA) ||
+            b[1].GF - a[1].GF
+        );
+
+        sorted.forEach(([team, s]) => {
+          tbody.innerHTML += `
+      <tr>
+        <td>${team}</td>
+        <td>${s.MP}</td>
+        <td>${s.W}</td>
+        <td>${s.D}</td>
+        <td>${s.L}</td>
+        <td>${s.GF}</td>
+        <td>${s.GA}</td>
+        <td>${s.GF - s.GA}</td>
+        <td>${s.HG}</td>
+        <td>${s.AG}</td>
+        <td>${s.PTS}</td>
+      </tr>`;
+        });
+      }
+
+      /* ===== GROUP CREATION ===== */
+      function makeGroup(g) {
+        let html = `<div class="group"><h2>Group ${g}</h2>`;
+        let t = groups[g];
+
+        let matches = [
+          [t[0], t[1]],
+          [t[1], t[0]],
+          [t[1], t[2]],
+          [t[2], t[1]],
+          [t[2], t[0]],
+          [t[0], t[2]],
+        ];
+
+        matches.forEach((m) => {
+          html += `
+    <div class="match" data-group="${g}" data-t1="${m[0]}" data-t2="${m[1]}">
+      Home:
+      <select class="home" onchange="updateGroup('${g}')">
+        <option>${m[0]}</option>
+        <option>${m[1]}</option>
+      </select>
+      <input class="hg" type="number" placeholder="HG" oninput="updateGroup('${g}')"> :
+      <input class="ag" type="number" placeholder="AG" oninput="updateGroup('${g}')">
+      Away
+    </div>`;
+        });
+
+        html += `
+  <table>
+    <thead>
+      <tr>
+        <th>Team</th>
+        <th>MP</th><th>W</th><th>D</th><th>L</th>
+        <th>GF</th><th>GA</th><th>GD</th>
+        <th>HG</th><th>AG</th><th>PTS</th>
+      </tr>
+    </thead>
+    <tbody id="table-${g}"></tbody>
+  </table>
+  </div>`;
+
+        return html;
+      }
+
+      /* ===== LOAD PAGE ===== */
+      const app = document.getElementById("app");
+      for (let g in groups) {
+        app.innerHTML += makeGroup(g);
+      }
+    </script>
+  </body>
+</html>
